@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.example.ms_campuslab_catalog.entity.Resource;
 import com.example.ms_campuslab_catalog.repository.ResourceRepository;
+import com.example.ms_campuslab_catalog.service.ResourceService;
 
 @RestController
 @RequestMapping("/api/catalog/resources")
@@ -23,9 +24,12 @@ import com.example.ms_campuslab_catalog.repository.ResourceRepository;
 public class ResourceController {
 
     private final ResourceRepository repository;
+    private final ResourceService resourceService;
 
-    public ResourceController(ResourceRepository repository) {
+    // Se inyecta tanto el repositorio (para lecturas) como el servicio (para el guardado con eventos)
+    public ResourceController(ResourceRepository repository, ResourceService resourceService) {
         this.repository = repository;
+        this.resourceService = resourceService;
     }
 
     @GetMapping
@@ -42,16 +46,17 @@ public class ResourceController {
 
     @PostMapping
     public ResponseEntity<Resource> createResource(@RequestBody Resource resource) {
-        Resource saved = repository.save(resource);
+        // Ahora delegamos la creación al servicio para que dispare los eventos a RabbitMQ
+        Resource saved = resourceService.createResource(resource);
         return ResponseEntity.status(HttpStatus.CREATED).body(saved);
     }
 
     @PutMapping("/{id}/stock")
     public ResponseEntity<Resource> updateStock(@PathVariable Long id, @RequestParam Integer stock) {
         return repository.findById(id)
-                .map(resource -> {
-                    resource.setStock(stock);
-                    return ResponseEntity.ok(repository.save(resource));
+                .map(existingResource -> {
+                    existingResource.setStock(stock);
+                    return ResponseEntity.ok(repository.save(existingResource));
                 })
                 .orElse(ResponseEntity.notFound().build());
     }

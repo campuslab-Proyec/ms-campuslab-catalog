@@ -4,17 +4,19 @@ server:
 spring:
   application:
     name: ms-campuslab-catalog
+    
   datasource:
-    url: jdbc:h2:mem:catalogdb
-    driverClassName: org.h2.Driver
-    username: sa
-    password:
-  h2:
-    console:
-      enabled: true
-      path: /h2-console
+    # Estas variables serán inyectadas automáticamente por tu compose_2.yml
+    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:3306/campuslabdb}
+    username: ${SPRING_DATASOURCE_USERNAME:root}
+    password: ${SPRING_DATASOURCE_PASSWORD:root}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    
   jpa:
-    database-platform: org.hibernate.dialect.H2Dialect
     hibernate:
-      ddl-auto: update
-    show-sql: true
+      ddl-auto: update # Hibernate creará o actualizará las tablas automáticamente
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+        format_sql: true
+    show-sql: true # Útil para ver las consultas en la consola durante el desarrollo

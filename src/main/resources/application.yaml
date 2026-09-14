@@ -2,13 +2,10 @@ server:
   port: 8082
 
 spring:
-  application:
-    name: ms-campuslab-catalog
-    
   datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:3306/campuslabdb}
-    username: ${SPRING_DATASOURCE_USERNAME:root}
-    password: ${SPRING_DATASOURCE_PASSWORD:root}
+    url: jdbc:mysql://localhost:3306/campuslab_catalog?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&createDatabaseIfNotExist=true
+    username: root
+    password: 1234
     driver-class-name: com.mysql.cj.jdbc.Driver
     
   jpa:
@@ -16,6 +13,5 @@ spring:
       ddl-auto: update 
     properties:
       hibernate:
-        dialect: org.hibernate.dialect.MySQLDialect
         format_sql: true
-    show-sql: true 
+    show-sql: true

@@ -47,6 +47,7 @@ public class ResourceController {
     @PostMapping
     public ResponseEntity<Resource> createResource(@RequestBody Resource resource) {
         // Ahora delegamos la creación al servicio para que dispare los eventos a RabbitMQ
+        resource.setId(null); // evita que un POST con id sobrescriba un registro existente
         Resource saved = resourceService.createResource(resource);
         return ResponseEntity.status(HttpStatus.CREATED).body(saved);
     }

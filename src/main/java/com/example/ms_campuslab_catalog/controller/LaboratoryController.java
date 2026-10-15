@@ -42,6 +42,7 @@ public class LaboratoryController {
 
     @PostMapping
     public ResponseEntity<Laboratory> createLab(@RequestBody Laboratory lab) {
+        lab.setId(null); // evita que un POST con id sobrescriba un registro existente
         Laboratory saved = repository.save(lab);
         return ResponseEntity.status(HttpStatus.CREATED).body(saved);
     }

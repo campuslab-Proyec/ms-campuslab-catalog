@@ -15,3 +15,17 @@ spring:
       hibernate:
         format_sql: true
     show-sql: true
+  rabbitmq:
+    host: ${SPRING_RABBITMQ_HOST:localhost}
+    port: 5672
+    username: guest
+    password: guest
+
+# Exchange y routing keys hacia las colas de ms-campuslab-notify (deben coincidir con su application.yaml)
+campuslab:
+  rabbitmq:
+    exchange: cmd.direct
+    routing-keys:
+      email: email.send
+      prep: prep.ticket
+      voucher: voucher.gen

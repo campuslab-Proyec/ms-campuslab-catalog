@@ -1,5 +1,7 @@
 package com.example.ms_campuslab_catalog.service;
 
+import java.util.Optional;
+
 import org.springframework.stereotype.Service;
 
 import com.example.ms_campuslab_catalog.entity.Resource;
@@ -43,5 +45,32 @@ public class ResourceService {
         }
 
         return savedResource;
+    }
+
+    /**
+     * Actualiza los datos editables de un recurso. El código no cambia: las reservas lo usan
+     * como identificador (resourceId).
+     */
+    public Optional<Resource> updateResource(Long id, Resource changes) {
+        return resourceRepository.findById(id).map(existing -> {
+            existing.setName(changes.getName());
+            existing.setCategory(changes.getCategory());
+            existing.setStock(changes.getStock());
+            existing.setDescription(changes.getDescription());
+            if (changes.getIsAvailable() != null) {
+                existing.setIsAvailable(changes.getIsAvailable());
+            }
+            return resourceRepository.save(existing);
+        });
+    }
+
+    /** Elimina un recurso. Devuelve false si no existe. */
+    public boolean deleteResource(Long id) {
+        if (!resourceRepository.existsById(id)) {
+            return false;
+        }
+        resourceRepository.deleteById(id);
+        log.info("Recurso {} eliminado del catálogo", id);
+        return true;
     }
 }

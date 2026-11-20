@@ -15,11 +15,13 @@ spring:
       hibernate:
         format_sql: true
     show-sql: true
+
   rabbitmq:
     host: ${SPRING_RABBITMQ_HOST:localhost}
     port: 5672
     username: guest
     password: guest
+
   security:
     oauth2:
       resourceserver:
@@ -29,6 +31,16 @@ spring:
           audiences:
             - 8d19bb45-1842-43ce-b76c-4513b979df81
             - api://8d19bb45-1842-43ce-b76c-4513b979df81
+
+  kafka:
+    bootstrap-servers: localhost:9092
+    producer:
+      acks: all
+      properties:
+        enable.idempotence: true
+        max.block.ms: 3000
+        request.timeout.ms: 5000
+        delivery.timeout.ms: 10000
 
 # Exchange y routing keys hacia las colas de ms-campuslab-notify (deben coincidir con su application.yaml)
 campuslab:

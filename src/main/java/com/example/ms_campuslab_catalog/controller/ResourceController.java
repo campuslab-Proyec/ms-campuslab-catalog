@@ -1,6 +1,7 @@
 package com.example.ms_campuslab_catalog.controller;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -17,6 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.example.ms_campuslab_catalog.entity.Resource;
 import com.example.ms_campuslab_catalog.repository.ResourceRepository;
+import com.example.ms_campuslab_catalog.service.KafkaCatalogProducer;
 import com.example.ms_campuslab_catalog.service.ResourceService;
 
 @RestController
@@ -26,11 +28,14 @@ public class ResourceController {
 
     private final ResourceRepository repository;
     private final ResourceService resourceService;
+    private final KafkaCatalogProducer kafkaProducer;
 
-    // Se inyecta tanto el repositorio (para lecturas) como el servicio (para el guardado con eventos)
-    public ResourceController(ResourceRepository repository, ResourceService resourceService) {
+    public ResourceController(ResourceRepository repository,
+                              ResourceService resourceService,
+                              KafkaCatalogProducer kafkaProducer) {
         this.repository = repository;
         this.resourceService = resourceService;
+        this.kafkaProducer = kafkaProducer;
     }
 
     @GetMapping
@@ -47,24 +52,30 @@ public class ResourceController {
 
     @PostMapping
     public ResponseEntity<Resource> createResource(@RequestBody Resource resource) {
-        // Ahora delegamos la creación al servicio para que dispare los eventos a RabbitMQ
-        resource.setId(null); // evita que un POST con id sobrescriba un registro existente
+        resource.setId(null); // Evita que un POST con id sobrescriba un registro existente
         Resource saved = resourceService.createResource(resource);
+        kafkaProducer.publishUpsert(saved);
         return ResponseEntity.status(HttpStatus.CREATED).body(saved);
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<Resource> updateResource(@PathVariable Long id, @RequestBody Resource changes) {
         return resourceService.updateResource(id, changes)
-                .map(ResponseEntity::ok)
+                .map(updated -> {
+                    kafkaProducer.publishUpsert(updated);
+                    return ResponseEntity.ok(updated);
+                })
                 .orElse(ResponseEntity.notFound().build());
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteResource(@PathVariable Long id) {
-        return resourceService.deleteResource(id)
-                ? ResponseEntity.noContent().build()
-                : ResponseEntity.notFound().build();
+        Optional<String> code = repository.findById(id).map(Resource::getCode);
+        if (resourceService.deleteResource(id)) {
+            code.ifPresent(kafkaProducer::publishDeleted);
+            return ResponseEntity.noContent().build();
+        }
+        return ResponseEntity.notFound().build();
     }
 
     @PutMapping("/{id}/stock")
@@ -72,7 +83,9 @@ public class ResourceController {
         return repository.findById(id)
                 .map(existingResource -> {
                     existingResource.setStock(stock);
-                    return ResponseEntity.ok(repository.save(existingResource));
+                    Resource saved = repository.save(existingResource);
+                    kafkaProducer.publishUpsert(saved);
+                    return ResponseEntity.ok(saved);
                 })
                 .orElse(ResponseEntity.notFound().build());
     }
